@@ -27,12 +27,15 @@ duoxieyun distributed unique ID generator inspired by Twitter's Snowflake
         "github.com/GiterLab/dxyflake"
     )
 
-    func main1() {
+    func main() {
         s := dxyflake.Settings{}
         s.Init(0, 0) // set mID & sID
         dxyid := dxyflake.NewDxyflake(s)
 
-        id, _ := dxyid.NextID()
+        id, err := dxyid.NextID()
+        if err != nil {
+            fmt.Println(err)
+        }
         fmt.Println(id, dxyflake.Decompose(id))
     }
 
