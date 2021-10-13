@@ -17,6 +17,25 @@ duoxieyun distributed unique ID generator inspired by Twitter's Snowflake
 
     go get github.com/GiterLab/dxyflake
 
+## Usage
+
+    package main
+
+    import (
+        "fmt"
+
+        "github.com/GiterLab/dxyflake"
+    )
+
+    func main1() {
+        s := dxyflake.Settings{}
+        s.Init(0, 0) // set mID & sID
+        dxyid := dxyflake.NewDxyflake(s)
+
+        id, _ := dxyid.NextID()
+        fmt.Println(id, dxyflake.Decompose(id))
+    }
+
 ## License
 
 The MIT License (MIT)
