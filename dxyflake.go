@@ -125,26 +125,26 @@ func NewDxyflake(st Settings) *dxyflake {
 
 // NextID generates a next unique ID.
 // After the dxyflake time overflows, NextID returns an error.
-func (sf *dxyflake) NextID() (ID, error) {
+func (df *dxyflake) NextID() (ID, error) {
 	const maskSequence = uint16(1<<BitLenSequence - 1)
 
-	sf.mutex.Lock()
-	defer sf.mutex.Unlock()
+	df.mutex.Lock()
+	defer df.mutex.Unlock()
 
-	current := currentElapsedTime(sf.startTime)
-	if sf.elapsedTime < current {
-		sf.elapsedTime = current
-		sf.sequence = 0
-	} else { // sf.elapsedTime >= current
-		sf.sequence = (sf.sequence + 1) & maskSequence
-		if sf.sequence == 0 { // overflow
-			sf.elapsedTime++
-			overtime := sf.elapsedTime - current
+	current := currentElapsedTime(df.startTime)
+	if df.elapsedTime < current {
+		df.elapsedTime = current
+		df.sequence = 0
+	} else { // df.elapsedTime >= current
+		df.sequence = (df.sequence + 1) & maskSequence
+		if df.sequence == 0 { // overflow
+			df.elapsedTime++
+			overtime := df.elapsedTime - current
 			time.Sleep(sleepTime((overtime)))
 		}
 	}
 
-	return sf.toID()
+	return df.toID()
 }
 
 const dxyflakeTimeUnit = 1e7 // nsec, i.e. 10 msec
@@ -162,15 +162,15 @@ func sleepTime(overtime int64) time.Duration {
 		time.Duration(time.Now().UTC().UnixNano()%dxyflakeTimeUnit)*time.Nanosecond
 }
 
-func (sf *dxyflake) toID() (ID, error) {
-	if sf.elapsedTime >= 1<<BitLenTime {
+func (df *dxyflake) toID() (ID, error) {
+	if df.elapsedTime >= 1<<BitLenTime {
 		return 0, errors.New("over the time limit")
 	}
 
-	return ID(int64(sf.elapsedTime)<<(BitLenMachineID+BitLenServiceID+BitLenSequence) |
-		int64(sf.machineID)<<(BitLenServiceID+BitLenSequence) |
-		int64(sf.serviceID)<<BitLenSequence |
-		int64(sf.sequence)), nil
+	return ID(int64(df.elapsedTime)<<(BitLenMachineID+BitLenServiceID+BitLenSequence) |
+		int64(df.machineID)<<(BitLenServiceID+BitLenSequence) |
+		int64(df.serviceID)<<BitLenSequence |
+		int64(df.sequence)), nil
 }
 
 // Decompose returns a set of dxyflake ID parts.
