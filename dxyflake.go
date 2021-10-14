@@ -125,7 +125,7 @@ func NewDxyflake(st Settings) *dxyflake {
 
 // NextID generates a next unique ID.
 // After the dxyflake time overflows, NextID returns an error.
-func (sf *dxyflake) NextID() (uint64, error) {
+func (sf *dxyflake) NextID() (ID, error) {
 	const maskSequence = uint16(1<<BitLenSequence - 1)
 
 	sf.mutex.Lock()
@@ -162,30 +162,30 @@ func sleepTime(overtime int64) time.Duration {
 		time.Duration(time.Now().UTC().UnixNano()%dxyflakeTimeUnit)*time.Nanosecond
 }
 
-func (sf *dxyflake) toID() (uint64, error) {
+func (sf *dxyflake) toID() (ID, error) {
 	if sf.elapsedTime >= 1<<BitLenTime {
 		return 0, errors.New("over the time limit")
 	}
 
-	return uint64(sf.elapsedTime)<<(BitLenMachineID+BitLenServiceID+BitLenSequence) |
-		uint64(sf.machineID)<<(BitLenServiceID+BitLenSequence) |
-		uint64(sf.serviceID)<<BitLenSequence |
-		uint64(sf.sequence), nil
+	return ID(int64(sf.elapsedTime)<<(BitLenMachineID+BitLenServiceID+BitLenSequence) |
+		int64(sf.machineID)<<(BitLenServiceID+BitLenSequence) |
+		int64(sf.serviceID)<<BitLenSequence |
+		int64(sf.sequence)), nil
 }
 
 // Decompose returns a set of dxyflake ID parts.
-func Decompose(id uint64) map[string]uint64 {
-	const maskMachineID = uint64((1<<BitLenMachineID - 1) << (BitLenServiceID + BitLenSequence))
-	const maskServiceID = uint64((1<<BitLenServiceID - 1) << BitLenSequence)
-	const maskSequence = uint64(1<<BitLenSequence - 1)
+func Decompose(id ID) map[string]int64 {
+	const maskMachineID = int64((1<<BitLenMachineID - 1) << (BitLenServiceID + BitLenSequence))
+	const maskServiceID = int64((1<<BitLenServiceID - 1) << BitLenSequence)
+	const maskSequence = int64(1<<BitLenSequence - 1)
 
-	msb := id >> 63
-	time := id >> (BitLenMachineID + BitLenServiceID + BitLenSequence)
-	machineID := (id & maskMachineID) >> (BitLenServiceID + BitLenSequence)
-	serviceID := (id & maskServiceID) >> BitLenSequence
-	sequence := (id & maskSequence)
-	return map[string]uint64{
-		"id":         id,
+	msb := int64(id) >> 63
+	time := int64(id) >> (BitLenMachineID + BitLenServiceID + BitLenSequence)
+	machineID := (int64(id) & maskMachineID) >> (BitLenServiceID + BitLenSequence)
+	serviceID := (int64(id) & maskServiceID) >> BitLenSequence
+	sequence := (int64(id) & maskSequence)
+	return map[string]int64{
+		"id":         int64(id),
 		"msb":        msb,
 		"time":       time,
 		"machine-id": machineID,

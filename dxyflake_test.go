@@ -10,8 +10,8 @@ import (
 var df *dxyflake
 
 var startTime int64
-var machineID uint64
-var serviceID uint64
+var machineID int64
+var serviceID int64
 
 func init() {
 	var st Settings
@@ -29,20 +29,25 @@ func init() {
 	}
 
 	startTime = toDxyflakeTime(st.StartTime)
-	machineID = uint64(1)
-	serviceID = uint64(2)
+	machineID = 1
+	serviceID = 2
 }
 
-func nextID(t *testing.T) uint64 {
+func nextID(t *testing.T) ID {
 	id, err := df.NextID()
 	if err != nil {
-		t.Fatal("id not generated")
+		t.Fatal("id not generated:", err)
 	}
 	return id
 }
 
+func testReset(t *testing.T) {
+	df.startTime = 0
+	df.elapsedTime = 0
+}
+
 func TestDxyflakeOnce(t *testing.T) {
-	sleepTime := uint64(50)
+	sleepTime := int64(50)
 	time.Sleep(time.Duration(sleepTime) * 10 * time.Millisecond)
 
 	id := nextID(t)
@@ -84,8 +89,8 @@ func currentTime() int64 {
 
 func TestDxyflakeFor10Sec(t *testing.T) {
 	var numID uint32
-	var lastID uint64
-	var maxSequence uint64
+	var lastID int64
+	var maxSequence int64
 
 	initial := currentTime()
 	current := initial
@@ -94,10 +99,10 @@ func TestDxyflakeFor10Sec(t *testing.T) {
 		parts := Decompose(id)
 		numID++
 
-		if id <= lastID {
+		if int64(id) <= lastID {
 			t.Fatal("duplicated id")
 		}
-		lastID = id
+		lastID = int64(id)
 
 		current = currentTime()
 
@@ -140,7 +145,7 @@ func TestDxyflakeInParallel(t *testing.T) {
 	runtime.GOMAXPROCS(numCPU)
 	fmt.Println("number of cpu:", numCPU)
 
-	consumer := make(chan uint64)
+	consumer := make(chan ID)
 
 	const numID = 10000
 	generate := func() {
@@ -154,7 +159,7 @@ func TestDxyflakeInParallel(t *testing.T) {
 		go generate()
 	}
 
-	set := make(map[uint64]struct{})
+	set := make(map[ID]struct{})
 	for i := 0; i < numID*numGenerator; i++ {
 		id := <-consumer
 		if _, ok := set[id]; ok {
@@ -212,12 +217,10 @@ func pseudoSleep(period time.Duration) {
 func TestNextIDError(t *testing.T) {
 	year := time.Duration(365*24) * time.Hour / dxyflakeTimeUnit
 	pseudoSleep(time.Duration(697) * year)
-	fmt.Println(df.startTime, 1<<BitLenTime)
 	nextID(t)
 
 	pseudoSleep(time.Duration(1) * year)
 	_, err := df.NextID()
-	fmt.Println(err, df.elapsedTime)
 	if err == nil {
 		t.Errorf("time is not over")
 	}
